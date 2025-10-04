@@ -144,3 +144,39 @@ def fetch_contributors_with_locations(owner, repo, top_n=10):
         })
 
     return detailed_contributors
+
+def fetch_readme(owner, repo_name):
+    url = f"{GITHUB_API_URL}/repos/{owner}/{repo_name}/readme"
+    response = requests.get(url, headers=HEADERS)
+    if response.status_code != 200:
+        print(f"Failed to fetch README: {response.text}")
+        return None
+    data = response.json()
+    content = data.get("content", "")
+    encoding = data.get("encoding", "base64")
+    if encoding == "base64":
+        return base64.b64decode(content).decode("utf-8", errors="ignore")
+    return content
+
+def extract_links_from_text(text):
+    url_pattern = re.compile(r'(https?://[^\s]+)')
+    return url_pattern.findall(text)
+
+def fetch_page_title_and_description(url):
+    try:
+        resp = requests.get(url, timeout=5)
+        resp.raise_for_status()
+        content = resp.text
+
+        # Extract <title>
+        title_match = re.search(r'<title>(.*?)</title>', content, re.IGNORECASE | re.DOTALL)
+        title = title_match.group(1).strip() if title_match else ""
+
+        # Extract <meta name="description" content="...">
+        description_match = re.search(r'<meta\s+name=["\']description["\']\s+content=["\'](.*?)["\']', content, re.IGNORECASE | re.DOTALL)
+        description = description_match.group(1).strip() if description_match else ""
+
+        return {"title": title, "description": description}
+    except Exception as e:
+        print(f"Error fetching page metadata for {url}: {e}")
+        return {"title": "", "description": ""}
