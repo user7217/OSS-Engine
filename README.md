@@ -168,9 +168,3 @@ This reduces **compute/API load** while still ranking projects by approach quali
   * Stage 2 LLM ranking as bonus for top 5 repos.
 
 ---
-
-This document **clearly communicates the problem, approach, and solution workflow** to your teammates.
-
-If you want, I can also **draw a visual workflow diagram** of how repos move through the scoring and ranking pipeline — that often makes it instantly clear for team members and judges.
-
-Do you want me to do that next?
