@@ -3,6 +3,7 @@ import os
 import re
 from google import genai
 from services.ingest.repo_fetcher import fetch_readme, extract_links_from_text, fetch_page_title_and_description
+from services.scoring.database import get_cached_score, save_score
 
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -29,6 +30,7 @@ def send_prompt_to_gemini(prompt):
     return parse_score_from_text(response.text)
 
 
+
 def get_documentation_score(owner, repo_name):
     """
     Comprehensive documentation score as weighted sum of:
@@ -38,29 +40,29 @@ def get_documentation_score(owner, repo_name):
     - License & contribution guidelines (10%)
     Each scored separately by Gemini using focused prompts on filtered README snippets.
     """
+
+    # Check for cached score first
+    cached = get_cached_score(owner, repo_name)
+    if cached and "documentation_score" in cached:
+        return cached["documentation_score"]
+
     readme_content = fetch_readme(owner, repo_name)
     if not readme_content:
         return 0
 
-    # Normalize README lines for filtering
     lines = [line.strip() for line in readme_content.splitlines() if line.strip()]
-    text_lower = readme_content.lower()
 
     def extract_section_by_keywords(keywords):
-        # Extract snippet lines that mention any keywords
         snippet_lines = [line for line in lines if any(kw in line.lower() for kw in keywords)]
-        # Return snippet text or fallback to first 50 lines
         if snippet_lines:
             return "\n".join(snippet_lines[:50])
         return "\n".join(lines[:50])
 
-    # Define keyword groups for each criterion
     clarity_keywords = ["description", "overview", "summary", "introduction", "purpose"]
     examples_keywords = ["example", "tutorial", "sample", "quick start", "demo"]
     setup_keywords = ["install", "setup", "configure", "prerequisite", "requirements"]
     license_contrib_keywords = ["license", "contributing", "contribution", "cla", "code of conduct"]
 
-    # Compose prompts for each section
     prompt_template = (
         "You are an expert technical writer. Evaluate the following README snippet "
         "for {criterion_description}. Respond with a numeric score from 0 (poor) to 10 (excellent).\n\n"
@@ -75,8 +77,7 @@ def get_documentation_score(owner, repo_name):
     examples_score = send_prompt_to_gemini(prompt_template.format(criterion_description="examples and tutorials") + examples_snippet)
     setup_score = send_prompt_to_gemini(prompt_template.format(criterion_description="setup and installation instructions") + setup_snippet)
     license_contrib_score = send_prompt_to_gemini(prompt_template.format(criterion_description="license and contribution guidelines") + license_contrib_snippet)
-
-    # Weighted combination
+    print(clarity_score, examples_score, setup_score, license_contrib_score)
     combined_score = (
         0.4 * clarity_score +
         0.3 * examples_score +
@@ -84,4 +85,11 @@ def get_documentation_score(owner, repo_name):
         0.1 * license_contrib_score
     )
 
-    return round(combined_score, 2)
+    combined_score = round(combined_score, 2)
+
+    # Save documentation score to cache
+    cached = cached or {}
+    cached["documentation_score"] = combined_score
+    save_score(owner, repo_name, cached)
+
+    return combined_score

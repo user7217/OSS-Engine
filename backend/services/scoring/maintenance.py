@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 import dateutil.parser
 import math
+from services.scoring.database import get_cached_score, save_score
 
 def decay_score(value, max_value, min_score=0, max_score=10):
     # Linear interpolation capped within score range
@@ -71,7 +72,11 @@ def calculate_ci_presence(ci_found=True, coverage_percent=80):
     else:
         return 5
 
-def calculate_category_1_score(data):
+def calculate_category_1_score(data, owner=None, repo=None):
+    if owner and repo:
+        cached = get_cached_score(owner, repo)
+        if cached and "maintenance_score" in cached:
+            return cached["maintenance_score"]
     commit_activity = calculate_commit_activity(
         data.get("pushedAt"),
         data.get("commitCountLast90Days", 0),
@@ -91,11 +96,16 @@ def calculate_category_1_score(data):
         data.get("ciPresent", True),
         data.get("testCoveragePercent", 80)
     )
-
+    print(commit_activity, pr_merge_rate, issue_resolution_rate, ci_presence)
     score = (
         0.75 * commit_activity +
         0.15 * pr_merge_rate +
         0.05 * issue_resolution_rate +
         0.05 * ci_presence
     )
+    if owner and repo:
+        cached = get_cached_score(owner, repo)
+        cached["maintenance_score"] = round(score, 2)
+        save_score(owner, repo, cached)
+
     return round(score, 2)

@@ -145,7 +145,18 @@ def fetch_contributors_with_locations(owner, repo, top_n=10):
 
     return detailed_contributors
 
-def fetch_readme(owner, repo_name):
+def fetch_readme(owner, repo_name, max_chars=10000, keywords=None):
+    """
+    Fetch README from GitHub, decode content,
+    and return a snippet of relevant content filtered by keywords and length limit.
+    If keywords is None, return first max_chars characters of README.
+
+    :param owner: repo owner name
+    :param repo_name: repo name
+    :param max_chars: max chars to return
+    :param keywords: list of lowercase keywords to filter lines
+    :return: filtered README snippet string
+    """
     url = f"{GITHUB_API_URL}/repos/{owner}/{repo_name}/readme"
     response = requests.get(url, headers=HEADERS)
     if response.status_code != 200:
@@ -155,8 +166,23 @@ def fetch_readme(owner, repo_name):
     content = data.get("content", "")
     encoding = data.get("encoding", "base64")
     if encoding == "base64":
-        return base64.b64decode(content).decode("utf-8", errors="ignore")
-    return content
+        decoded = base64.b64decode(content).decode("utf-8", errors="ignore")
+    else:
+        decoded = content
+
+    lines = decoded.splitlines()
+
+    if keywords:
+        # Filter lines containing any keyword
+        filtered_lines = [line for line in lines if any(kw in line.lower() for kw in keywords)]
+        snippet = "\n".join(filtered_lines)
+    else:
+        snippet = decoded
+
+    if len(snippet) > max_chars:
+        snippet = snippet[:max_chars]
+
+    return snippet
 
 def extract_links_from_text(text):
     url_pattern = re.compile(r'(https?://[^\s]+)')
@@ -180,3 +206,85 @@ def fetch_page_title_and_description(url):
     except Exception as e:
         print(f"Error fetching page metadata for {url}: {e}")
         return {"title": "", "description": ""}
+    
+def fetch_pull_requests(owner, repo, state="all", per_page=100, max_items=100):
+    prs = []
+    page = 1
+    while len(prs) < max_items:
+        url = f"{GITHUB_API_URL}/repos/{owner}/{repo}/pulls"
+        params = {"state": state, "per_page": min(per_page, max_items - len(prs)), "page": page}
+        resp = requests.get(url, headers=HEADERS, params=params)
+        if resp.status_code != 200:
+            print(f"Failed to fetch pull requests: {resp.status_code}, {resp.text}")
+            break
+        data = resp.json()
+        if not data:
+            break
+        prs.extend(data)
+        if len(data) < params["per_page"]:
+            break
+        page += 1
+
+    return prs[:max_items]
+
+def fetch_pr_reviews(owner, repo, pr_number, per_page=100, max_items=100):
+    reviews = []
+    page = 1
+    while len(reviews) < max_items:
+        url = f"{GITHUB_API_URL}/repos/{owner}/{repo}/pulls/{pr_number}/reviews"
+        params = {"per_page": min(per_page, max_items - len(reviews)), "page": page}
+        resp = requests.get(url, headers=HEADERS, params=params)
+        if resp.status_code != 200:
+            print(f"Failed to fetch PR reviews: {resp.status_code}, {resp.text}")
+            break
+        data = resp.json()
+        if not data:
+            break
+        reviews.extend(data)
+        if len(data) < params["per_page"]:
+            break
+        page += 1
+
+    return reviews[:max_items]
+
+
+def fetch_issues(owner, repo, state="all", per_page=100, max_items=100):
+    issues = []
+    page = 1
+    while len(issues) < max_items:
+        url = f"{GITHUB_API_URL}/repos/{owner}/{repo}/issues"
+        params = {"state": state, "per_page": min(per_page, max_items - len(issues)), "page": page}
+        resp = requests.get(url, headers=HEADERS, params=params)
+        if resp.status_code != 200:
+            print(f"Failed to fetch issues: {resp.status_code} - {resp.text}")
+            break
+        data = resp.json()
+        if not data:
+            break
+        issues.extend(data)
+        if len(data) < params["per_page"]:
+            break
+        page += 1
+
+    return issues[:max_items]
+
+
+def fetch_issue_comments(owner, repo, issue_number, per_page=100, max_items=100):
+    comments = []
+    page = 1
+    while len(comments) < max_items:
+        url = f"{GITHUB_API_URL}/repos/{owner}/{repo}/issues/{issue_number}/comments"
+        params = {"per_page": min(per_page, max_items - len(comments)), "page": page}
+        resp = requests.get(url, headers=HEADERS, params=params)
+        if resp.status_code != 200:
+            print(f"Failed to fetch issue comments: {resp.status_code} - {resp.text}")
+            break
+        data = resp.json()
+        if not data:
+            break
+        comments.extend(data)
+        if len(data) < params["per_page"]:
+            break
+        page += 1
+
+    return comments[:max_items]
