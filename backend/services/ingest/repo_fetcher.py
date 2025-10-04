@@ -1,8 +1,12 @@
 import requests
 import base64
 import os
-from .github_graphql_client import run_graphql_query
 from datetime import datetime, timedelta
+from .github_graphql_client import run_graphql_query
+
+GITHUB_API_URL = "https://api.github.com"
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+HEADERS = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
 
 REPO_SNAPSHOT_QUERY = """
 query RepoSnapshot($owner: String!, $name: String!, $since: GitTimestamp!) {
@@ -72,7 +76,7 @@ def extract_comments_and_code(lines):
 
 def fetch_code_snippets(owner, repo_name, max_files=3, max_lines=50):
     valid_extensions = (".py", ".js", ".java", ".kt", ".cpp", ".c", ".ts", ".go", ".rb")
-    headers = {"Authorization": f"Bearer {os.getenv('GITHUB_TOKEN')}"}
+    headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
     url = f"https://api.github.com/repos/{owner}/{repo_name}/contents"
     snippets = []
 
@@ -112,3 +116,31 @@ def fetch_code_snippets(owner, repo_name, max_files=3, max_lines=50):
 
     print(f"Collected {len(snippets)} main file snippets for analysis")
     return snippets
+
+def fetch_contributors_with_locations(owner, repo, top_n=10):
+    """
+    Fetch top contributors for the repo and their GitHub profile locations.
+    """
+    contributors_url = f"{GITHUB_API_URL}/repos/{owner}/{repo}/contributors?per_page={top_n}"
+    resp = requests.get(contributors_url, headers=HEADERS)
+    resp.raise_for_status()
+    contributors = resp.json()
+
+    detailed_contributors = []
+    for contributor in contributors:
+        username = contributor.get("login")
+        user_url = f"{GITHUB_API_URL}/users/{username}"
+        user_resp = requests.get(user_url, headers=HEADERS)
+        user_resp.raise_for_status()
+        user_data = user_resp.json()
+        location = user_data.get("location", None)
+        created_at = user_data.get("created_at", None)  # ISO date string
+
+        detailed_contributors.append({
+            "login": username,
+            "contributions": contributor.get("contributions"),
+            "location": location,
+            "created_at": created_at
+        })
+
+    return detailed_contributors
