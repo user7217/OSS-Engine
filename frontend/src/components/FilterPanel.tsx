@@ -1,97 +1,136 @@
-import React, { useState } from "react";
+import React from "react";
+import Select from "react-select";
 
-interface Props {
-  onApplyFilters: (filters: {
-    keywords: string;
-    language: string;
-    minGoodFirstIssues: number;
-    maxGoodFirstIssues: number;
-    topics: string;
-    recentCommitDays: number;
-  }) => void;
-}
+export type Filters = {
+  keywords: string;
+  language: string;
+  topics: string[];
+  minGoodFirstIssues: number;
+  maxGoodFirstIssues: number;
+  recentCommitDays: number;
+};
 
-const FilterPanel: React.FC<Props> = ({ onApplyFilters }) => {
-  const [keywords, setKeywords] = useState("");
-  const [language, setLanguage] = useState("");
-  const [minGoodFirstIssues, setMinGoodFirstIssues] = useState(0);
-  const [maxGoodFirstIssues, setMaxGoodFirstIssues] = useState(1000);
-  const [topics, setTopics] = useState("");
-  const [recentCommitDays, setRecentCommitDays] = useState(90);
+type FilterPanelProps = {
+  filters: Filters;
+  languageOptions: string[];
+  topicOptions: string[];
+  onFiltersChange: (filters: Filters) => void;
+  onSearchClick: (filters: Filters) => void;
+};
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onApplyFilters({
-      keywords,
-      language,
-      minGoodFirstIssues,
-      maxGoodFirstIssues,
-      topics,
-      recentCommitDays,
-    });
-  };
+const topicSelectOptions = (topicOptions: string[]) =>
+  topicOptions.map(v => ({ label: v, value: v }));
 
+const FilterPanel: React.FC<FilterPanelProps> = ({
+  filters,
+  onFiltersChange,
+  languageOptions,
+  topicOptions,
+  onSearchClick,
+}) => {
   return (
-    <form onSubmit={handleSubmit} style={{ marginBottom: 20 }}>
-      <div>
-        <label>Keywords: </label>
+    <div className="google-filter-panel">
+      <form
+        className="google-search-form"
+        onSubmit={e => {
+          e.preventDefault();
+          onSearchClick(filters);
+        }}
+      >
         <input
           type="text"
-          value={keywords}
-          onChange={(e) => setKeywords(e.target.value)}
-          placeholder="Search keywords"
+          placeholder="Search repositories"
+          spellCheck={false}
+          value={filters.keywords}
+          onChange={e => onFiltersChange({ ...filters, keywords: e.target.value })}
+          className="big-search-input"
         />
+        <button className="big-search-button" type="submit">
+          Search
+        </button>
+      </form>
+      <div className="dropdown-row">
+        <select
+          className="google-dropdown"
+          value={filters.language}
+          onChange={e => onFiltersChange({ ...filters, language: e.target.value })}
+        >
+          <option value="">All Languages</option>
+          {languageOptions.map(lang => (
+            <option key={lang} value={lang}>{lang}</option>
+          ))}
+        </select>
+        <div style={{ minWidth: 180, flex: 1, marginRight: 8, fontFamily: "inherit" }}>
+          <Select
+            isMulti
+            name="topics"
+            classNamePrefix="react-select"
+            value={topicSelectOptions(topicOptions).filter(option =>
+              filters.topics.includes(option.value),
+            )}
+            options={topicSelectOptions(topicOptions)}
+            onChange={selected =>
+              onFiltersChange({ ...filters, topics: (selected as any[]).map(o => o.value) })
+            }
+            placeholder="Topics"
+            styles={{
+              control: base => ({
+                ...base,
+                background: "#232635",
+                borderRadius: 16,
+                borderColor: "#34374b",
+                color: "#e0e7ef",
+                fontFamily: "inherit",
+              }),
+              menu: base => ({
+                ...base,
+                background: "#232635",
+                color: "#e0e7ef",
+                borderRadius: 14,
+              }),
+              multiValue: base => ({
+                ...base,
+                background: "#343f50",
+                color: "#c7e3fe",
+                borderRadius: 10,
+              }),
+              multiValueLabel: base => ({
+                ...base,
+                color: "#c7e3fe",
+                fontWeight: 600,
+              }),
+            }}
+          />
+        </div>
+        <select
+          className="google-dropdown"
+          value={filters.minGoodFirstIssues}
+          onChange={e => onFiltersChange({ ...filters, minGoodFirstIssues: Number(e.target.value) })}
+        >
+          {[0, 1, 2, 3, 4, 5].map(v => (
+            <option key={v} value={v}>{v}+</option>
+          ))}
+        </select>
+        <select
+          className="google-dropdown"
+          value={filters.maxGoodFirstIssues}
+          onChange={e => onFiltersChange({ ...filters, maxGoodFirstIssues: Number(e.target.value) })}
+        >
+          {[10, 50, 100, 500, 1000].map(v => (
+            <option key={v} value={v}>{v}</option>
+          ))}
+        </select>
+        <select
+          className="google-dropdown"
+          value={filters.recentCommitDays}
+          onChange={e => onFiltersChange({ ...filters, recentCommitDays: Number(e.target.value) })}
+        >
+          {[30, 60, 90, 180].map(v => (
+            <option key={v} value={v}>Last {v} days</option>
+          ))}
+        </select>
       </div>
-      <div>
-        <label>Language: </label>
-        <input
-          type="text"
-          value={language}
-          onChange={(e) => setLanguage(e.target.value)}
-          placeholder="e.g. Python, JavaScript"
-        />
-      </div>
-      <div>
-        <label>Good First Issues (min): </label>
-        <input
-          type="number"
-          min={0}
-          value={minGoodFirstIssues}
-          onChange={(e) => setMinGoodFirstIssues(Number(e.target.value))}
-        />
-      </div>
-      <div>
-        <label>Good First Issues (max): </label>
-        <input
-          type="number"
-          min={0}
-          value={maxGoodFirstIssues}
-          onChange={(e) => setMaxGoodFirstIssues(Number(e.target.value))}
-        />
-      </div>
-      <div>
-        <label>Topics (comma separated): </label>
-        <input
-          type="text"
-          value={topics}
-          onChange={(e) => setTopics(e.target.value)}
-          placeholder="e.g. machine-learning, web"
-        />
-      </div>
-      <div>
-        <label>Commit recency (days): </label>
-        <input
-          type="number"
-          min={1}
-          max={365}
-          value={recentCommitDays}
-          onChange={(e) => setRecentCommitDays(Number(e.target.value))}
-        />
-      </div>
-      <button type="submit" style={{ marginTop: 10 }}>
-        Search
-      </button>
-    </form>
+    </div>
   );
 };
 

@@ -1,0 +1,171 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+body {
+  min-height: 100vh;
+  background: radial-gradient(ellipse at 60% top, #25273a 80%, #171821 100%);
+  color: #f7fafc;
+  font-family: 'Inter', 'Roboto', 'Segoe UI', Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center; /* Center items vertically */
+  justify-content: center; /* Center items horizontally */
+}
+
+.page-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 93vh;
+  width: 100vw;
+}
+
+/* Search/filter panel styling */
+.google-filter-panel {
+  background: #1a1c26;
+  border-radius: 24px;
+  box-shadow: 0 12px 48px #01041770;
+  padding: 2.5rem 2rem 2rem 2rem;
+  margin-bottom: 3rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 340px;
+}
+
+.google-search-form {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+}
+
+.big-search-input {
+  width: 420px;
+  max-width: 92vw;
+  border: 0;
+  border-radius: 32px;
+  padding: 1.2rem 2rem;
+  font-size: 2rem;
+  font-family: inherit;
+  background: #232635;
+  color: #fff;
+  box-shadow: 0 3px 24px #12151e44;
+  outline: none;
+  transition: box-shadow 0.2s;
+}
+
+.big-search-input:focus {
+  box-shadow: 0 8px 36px #4f8cff44;
+}
+
+.big-search-button {
+  border: none;
+  border-radius: 32px;
+  background: linear-gradient(90deg, #2176ff, #5e60ce 70%);
+  color: #fff;
+  font-weight: 600;
+  font-size: 1.22rem;
+  padding: 1em 2.2em;
+  box-shadow: 0 2px 10px #1a1c2666;
+  cursor: pointer;
+  transition: background 0.18s, transform 0.13s;
+  font-family: inherit;
+  margin-left: 0.5rem;
+}
+.big-search-button:hover, .big-search-button:focus {
+  background: linear-gradient(90deg, #5e60ce 30%, #2176ff 100%);
+  transform: scale(1.05);
+  outline: none;
+}
+
+.dropdown-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.1rem;
+}
+
+.google-dropdown {
+  padding: 0.65rem 1.25rem;
+  border-radius: 16px;
+  border: 1.3px solid #34374b;
+  background: #232635;
+  color: #d1eaff;
+  font-size: 1.11rem;
+  min-width: 145px;
+  outline: none;
+  box-shadow: 0 1.5px 6px #161c2e30;
+  transition: border 0.19s, background 0.19s;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.google-dropdown:focus {
+  border-color: #5e85f7;
+  background: #191b23;
+}
+
+.google-dropdown option {
+  background: #171821;
+  color: #f7fafc;
+}
+
+.google-dropdown::-webkit-scrollbar {
+  width: 10px;
+  background: #232635;
+  border-radius: 6px;
+}
+.google-dropdown::-webkit-scrollbar-thumb {
+  background: #323248;
+}
+
+.loading,
+.no-results {
+  color: #a1a6d0;
+  margin-top: 2rem;
+  font-size: 1.15rem;
+  letter-spacing: 1px;
+}
+
+.repo-cards-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+  gap: 1.6rem;
+}
+
+.repo-card {
+  background: #232635;
+  border-radius: 18px;
+  box-shadow: 0 10px 32px #01041750;
+  padding: 1.8rem 1.5rem;
+  min-height: 180px;
+  transition: box-shadow 0.18s, transform 0.1s;
+}
+
+.repo-card:hover {
+  box-shadow: 0 24px 60px #3c4dbb44;
+  transform: scale(1.025) translateY(-3px);
+}
+
+.repo-name {
+  font-size: 1.22rem;
+  color: #6ea6f7;
+  margin-bottom: 0.6rem;
+}
+.score-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.06rem;
+  margin-bottom: 0.5rem;
+}
+.score-label { font-weight: 400; color: #b1bde2; }
+.score-value {
+  border-radius: 10px;
+  font-weight: bold;
+  padding: 0.1rem 0.7rem;
+}
+.score-green { background: #29cc80; color: #fff; }
+.score-yellow { background: #f7ce66; color: #1e293b; }
+.score-red { background: #f36363; color: #fff; }

@@ -109,5 +109,29 @@
       "Weak in Documentation"
     ],
     "num_snippets": 1
+  },
+  "SwanHubX/SwanLab": {
+    "documentation_score": 3.9
+  },
+  "lars76/swift-f0": {
+    "documentation_score": 7.1
+  },
+  "introlix/Swiftlet": {
+    "documentation_score": 0.8
+  },
+  "RasaHQ/rasa": {
+    "documentation_score": 5.3
+  },
+  "ansingh0174/Social-Media-Analysis": {
+    "documentation_score": 4.8,
+    "code_quality_score": 4.0
+  },
+  "LankeSathwik7/Urban-Maintenance-Scout": {
+    "documentation_score": 3.4,
+    "code_quality_score": 7.0
+  },
+  "mbarde/flask-qrcode": {
+    "documentation_score": 7.6,
+    "code_quality_score": 4.5
   }
 }

@@ -5,14 +5,11 @@ from google import genai
 from services.ingest.repo_fetcher import fetch_readme, extract_links_from_text, fetch_page_title_and_description
 from services.scoring.database import get_cached_score, save_score
 
-
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
     raise RuntimeError("GEMINI_API_KEY environment variable is not set")
 
-
 client = genai.Client(api_key=GEMINI_API_KEY)
-
 
 def parse_score_from_text(text):
     match = re.search(r"(\d+(\.\d+)?)", text)
@@ -22,7 +19,6 @@ def parse_score_from_text(text):
         return score
     print("No numeric score found in Gemini response")
     return None
-
 
 def send_prompt_to_gemini(prompt):
     try:
@@ -36,6 +32,15 @@ def send_prompt_to_gemini(prompt):
         print(f"Error querying Gemini: {e}")
         return 0
 
+def normalize_score(score, max_score=10):
+    if score is None:
+        return 0
+    if score < 0:
+        return 0
+    if score > max_score:
+        print(f"Score {score} capped at max {max_score}")
+        return max_score
+    return score
 
 def get_documentation_score(owner, repo_name):
     """
@@ -80,18 +85,26 @@ def get_documentation_score(owner, repo_name):
     setup_snippet = extract_section_by_keywords(setup_keywords)
     license_contrib_snippet = extract_section_by_keywords(license_contrib_keywords)
 
-    clarity_score = send_prompt_to_gemini(prompt_template.format(criterion_description="clarity and understandability") + clarity_snippet)
-    examples_score = send_prompt_to_gemini(prompt_template.format(criterion_description="examples and tutorials") + examples_snippet)
-    setup_score = send_prompt_to_gemini(prompt_template.format(criterion_description="setup and installation instructions") + setup_snippet)
-    license_contrib_score = send_prompt_to_gemini(prompt_template.format(criterion_description="license and contribution guidelines") + license_contrib_snippet)
+    clarity_score = normalize_score(
+        send_prompt_to_gemini(prompt_template.format(criterion_description="clarity and understandability") + clarity_snippet)
+    )
+    examples_score = normalize_score(
+        send_prompt_to_gemini(prompt_template.format(criterion_description="examples and tutorials") + examples_snippet)
+    )
+    setup_score = normalize_score(
+        send_prompt_to_gemini(prompt_template.format(criterion_description="setup and installation instructions") + setup_snippet)
+    )
+    license_contrib_score = normalize_score(
+        send_prompt_to_gemini(prompt_template.format(criterion_description="license and contribution guidelines") + license_contrib_snippet)
+    )
 
     print(f"Documentation sub-scores for {owner}/{repo_name}: clarity={clarity_score}, examples={examples_score}, setup={setup_score}, license/contrib={license_contrib_score}")
 
     combined_score = (
-        0.4 * (clarity_score or 0) +
-        0.3 * (examples_score or 0) +
-        0.2 * (setup_score or 0) +
-        0.1 * (license_contrib_score or 0)
+        0.4 * clarity_score +
+        0.3 * examples_score +
+        0.2 * setup_score +
+        0.1 * license_contrib_score
     )
     combined_score = round(combined_score, 2)
 

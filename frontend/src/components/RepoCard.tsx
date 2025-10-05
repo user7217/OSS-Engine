@@ -1,65 +1,64 @@
 import React from "react";
-import { RepoScoreResult } from "../types/RepoScoreResult";
 
-interface Props {
-  repo: RepoScoreResult;
-  isTop15: boolean;
-}
+type RepoCardProps = {
+  repo: {
+    repo: string;
+    combined_score: number;
+    maintenance_score: number;
+    community_score: number;
+    code_quality_score: number | null;
+    documentation_score: number | null;
+  };
+};
 
-const RepoCard: React.FC<Props> = ({ repo, isTop15 }) => {
+const getScoreClass = (score: number | null) => {
+  if (score === null) return "";
+  if (score >= 8) return "score-green";
+  if (score >= 5) return "score-yellow";
+  return "score-red";
+};
+
+const RepoCard: React.FC<RepoCardProps> = ({ repo }) => {
+  const repoUrl = `https://github.com/${repo.repo}`;
+
   return (
-    <div
-      style={{
-        border: "1px solid #ddd",
-        borderRadius: 8,
-        padding: 16,
-        marginBottom: 12,
-        boxShadow: "1px 1px 5px rgba(0,0,0,0.1)",
-      }}
+    <a
+      href={repoUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="repo-card-link"
+      aria-label={`Open GitHub repository ${repo.repo} in new tab`}
+      style={{ textDecoration: "none", color: "inherit", display: "block" }}
     >
-      <h3>
-        <a href={`https://github.com/${repo.owner}/${repo.repo_name}`} target="_blank" rel="noreferrer">
-          {repo.repo}
-        </a>
-      </h3>
-      <p>
-        <b>Good First Issues:</b> {repo.good_first_issues_count} |{" "}
-        <b>Last Commit:</b> {repo.pushed_at ? new Date(repo.pushed_at).toLocaleDateString() : "N/A"}
-      </p>
+      <div className="repo-card" tabIndex={0}>
+        <h3 className="repo-name">{repo.repo}</h3>
 
-      <p>
-        <b>Maintenance score:</b> {repo.maintenance_score.toFixed(2)} |{" "}
-        <b>Community score:</b> {repo.community_score.toFixed(2)}
-      </p>
+        <div className="score-row">
+          <div className="score-label">Combined</div>
+          <div className={`score-value ${getScoreClass(repo.combined_score)}`}>{repo.combined_score}</div>
+        </div>
 
-      {isTop15 && (
-        <>
-          <p>
-            <b>Documentation score:</b>{" "}
-            {repo.documentation_score !== null && repo.documentation_score !== undefined
-              ? repo.documentation_score.toFixed(2)
-              : "N/A"}
-          </p>
-          <p>
-            <b>Code Quality score:</b>{" "}
-            {repo.code_quality_score !== null && repo.code_quality_score !== undefined
-              ? repo.code_quality_score.toFixed(2)
-              : "N/A"}
-          </p>
-        </>
-      )}
+        <div className="score-row">
+          <div className="score-label">Maintenance</div>
+          <div className={`score-value ${getScoreClass(repo.maintenance_score)}`}>{repo.maintenance_score}</div>
+        </div>
 
-      <p>
-        <b>Combined score:</b> {repo.combined_score.toFixed(2)}
-      </p>
+        <div className="score-row">
+          <div className="score-label">Community</div>
+          <div className={`score-value ${getScoreClass(repo.community_score)}`}>{repo.community_score}</div>
+        </div>
 
-      <p>
-        <b>Topics:</b>{" "}
-        {repo.topics && repo.topics.length > 0
-          ? repo.topics.join(", ")
-          : "None"}
-      </p>
-    </div>
+        <div className="score-row">
+          <div className="score-label">Code Quality</div>
+          <div className={`score-value ${getScoreClass(repo.code_quality_score)}`}>{repo.code_quality_score ?? "N/A"}</div>
+        </div>
+
+        <div className="score-row">
+          <div className="score-label">Documentation</div>
+          <div className={`score-value ${getScoreClass(repo.documentation_score)}`}>{repo.documentation_score ?? "N/A"}</div>
+        </div>
+      </div>
+    </a>
   );
 };
 

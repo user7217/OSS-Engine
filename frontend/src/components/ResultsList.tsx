@@ -1,17 +1,15 @@
 import React from "react";
-import { RepoScoreResult } from "../types/RepoScoreResult";
 import RepoCard from "./RepoCard";
 
-interface Props {
-  repos: RepoScoreResult[];
-}
+type ResultsListProps = { repos: any[]; loading: boolean; };
 
-const ResultsList: React.FC<Props> = ({ repos }) => {
+const ResultsList: React.FC<ResultsListProps> = ({ repos, loading }) => {
+  if (loading) return <div className="loading">Loading repositories...</div>;
+  if (repos.length === 0)
+    return <div className="no-results">No repositories match your criteria.</div>;
   return (
-    <div>
-      {repos.map((repo, idx) => (
-        <RepoCard key={repo.repo} repo={repo} isTop15={idx < 15} />
-      ))}
+    <div className="repo-cards-container">
+      {repos.map((repo) => <RepoCard key={repo.repo} repo={repo} />)}
     </div>
   );
 };
