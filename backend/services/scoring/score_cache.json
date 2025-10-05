@@ -28,5 +28,86 @@
       "Weak in Documentation"
     ],
     "num_snippets": 3
+  },
+  "facebook/react": {
+    "repo": "facebook/react",
+    "score_category_1": 6.46,
+    "code_quality_score": 9.5,
+    "community_engagement_score": 4.53,
+    "documentation_score": 6.6,
+    "combined_score": 6.75,
+    "top_highlights": [
+      "Code Quality"
+    ],
+    "special_mentions": [
+      "Weak in Community"
+    ],
+    "num_snippets": 3
+  },
+  "techy4shri/Traffic-Tracking-System": {
+    "documentation_score": 7.3
+  },
+  "sjsreehari/pragati": {
+    "documentation_score": 4.2,
+    "code_quality_score": 7.0
+  },
+  "zak-510/BerkeleyBets": {
+    "documentation_score": 2.4
+  },
+  "pkparthk/Buddy-AI": {
+    "documentation_score": 1.2,
+    "code_quality_score": 9.0
+  },
+  "AceAtDev/MailMindAI": {
+    "documentation_score": 4.6
+  },
+  "raksh-dev/OpsForge": {
+    "documentation_score": 3.3
+  },
+  "AmmarShaikh456/TicTacToeBOT": {
+    "documentation_score": 2.7,
+    "code_quality_score": 4.0
+  },
+  "pkparthk/Plant-Disease-Detection": {
+    "documentation_score": 4.0
+  },
+  "khaledjamal/fastapi-react-sentiment": {
+    "documentation_score": 3.6
+  },
+  "Zaibten/Sign-Language-Detection-React-Python-Application": {
+    "documentation_score": 5.1
+  },
+  "AmaedaQ/rasa-ecommerce-bot": {
+    "documentation_score": 4.1,
+    "code_quality_score": 6.0
+  },
+  "CrispenGari/eggonomics": {
+    "documentation_score": 3.6
+  },
+  "ClaudiuGeorgiu/RiskInDroid": {
+    "documentation_score": 2.4
+  },
+  "Gowtham1729/Android-App-Malware-Detector": {
+    "documentation_score": 3.1,
+    "code_quality_score": 1.0
+  },
+  "daslearning-org/ai-surveillance": {
+    "documentation_score": 4.8
+  },
+  "tensorflow/tensorflow": {
+    "repo": "tensorflow/tensorflow",
+    "score_category_1": 7.99,
+    "code_quality_score": 9.5,
+    "community_engagement_score": 2.21,
+    "documentation_score": 3.0,
+    "combined_score": 6.42,
+    "top_highlights": [
+      "Code Quality"
+    ],
+    "special_mentions": [
+      "Weak in Community",
+      "Weak in Documentation"
+    ],
+    "num_snippets": 1
   }
 }

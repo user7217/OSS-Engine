@@ -1,39 +1,36 @@
-import requests
-import base64
 import os
+import requests
 from datetime import datetime, timedelta
-from .github_graphql_client import run_graphql_query
+import base64
+import re
+from services.ingest.github_graphql_client import run_graphql_query
+
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+if not GITHUB_TOKEN:
+    raise RuntimeError("GITHUB_TOKEN environment variable is not set")
+
+HEADERS = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
 
 GITHUB_API_URL = "https://api.github.com"
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-HEADERS = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
 
 REPO_SNAPSHOT_QUERY = """
 query RepoSnapshot($owner: String!, $name: String!, $since: GitTimestamp!) {
   repository(owner: $owner, name: $name) {
-    nameWithOwner
-    stargazerCount
+    name
+    owner { login }
     pushedAt
     defaultBranchRef {
+      name
       target {
         ... on Commit {
-          history(since: $since) {
+          totalCommits: history {
+            totalCount
+          }
+          recentCommits: history(since: $since) {
             totalCount
           }
         }
       }
-    }
-    pullRequestsTotal: pullRequests(states: [OPEN, MERGED, CLOSED]) {
-      totalCount
-    }
-    pullRequestsMerged: pullRequests(states: MERGED) {
-      totalCount
-    }
-    issuesTotal: issues(states: [OPEN, CLOSED]) {
-      totalCount
-    }
-    issuesClosed: issues(states: CLOSED) {
-      totalCount
     }
   }
 }
@@ -44,13 +41,43 @@ def fetch_repo_data(owner, repo_name):
     variables = {"owner": owner, "name": repo_name, "since": since_date}
     data = run_graphql_query(REPO_SNAPSHOT_QUERY, variables)
     repo = data.get("repository", None)
-    if repo:
-        commit_count_last_90_days = repo.get("defaultBranchRef", {})\
-                                       .get("target", {})\
-                                       .get("history", {})\
-                                       .get("totalCount", 0)
-        repo["commitCountLast90Days"] = commit_count_last_90_days
-    return repo
+    if not repo:
+        print(f"Repository {owner}/{repo_name} not found in GraphQL response.")
+        return None
+
+    pushed_at = repo.get("pushedAt") or ""
+
+    dbr = repo.get("defaultBranchRef") or {}
+    tgt = dbr.get("target") or {}
+
+    total_commit_count = tgt.get("totalCommits", {}).get("totalCount", 0)
+    commit_count_last_90_days = tgt.get("recentCommits", {}).get("totalCount", 0)
+
+    # Fallback to REST if pushedAt missing
+    if not pushed_at:
+        try:
+            rest = requests.get(f"{GITHUB_API_URL}/repos/{owner}/{repo_name}", headers=HEADERS, timeout=15)
+            if rest.ok:
+                pushed_at = rest.json().get("pushed_at") or ""
+                print(f"[REST fallback] pushed_at for {owner}/{repo_name}: {pushed_at}")
+            else:
+                print(f"[REST fallback] Failed for {owner}/{repo_name} with status {rest.status_code}")
+        except Exception as e:
+            print(f"[REST fallback] Error fetching pushed_at for {owner}/{repo_name}: {e}")
+
+    scored_repo = {
+        "owner": owner,
+        "name": repo_name,
+        "full_name": f"{owner}/{repo_name}",
+        "pushedAt": pushed_at,
+        "commitCountLast90Days": commit_count_last_90_days,
+        "totalCommitCount": total_commit_count,
+    }
+
+    print(f"fetch_repo_data for {owner}/{repo_name}: pushedAt={pushed_at}, last90={commit_count_last_90_days}, total={total_commit_count}")
+    return scored_repo
+
+
 
 def extract_comments_and_code(lines):
     comments = []

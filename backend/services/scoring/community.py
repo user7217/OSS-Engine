@@ -4,9 +4,11 @@ import os
 from dateutil import parser
 from services.scoring.database import get_cached_score, save_score
 from services.ingest.repo_fetcher import fetch_pull_requests, fetch_pr_reviews, fetch_issues, fetch_issue_comments
+
 GITHUB_API_URL = "https://api.github.com"
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 HEADERS = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
+
 
 def parse_country_from_location(location_str):
     if not location_str:
@@ -15,8 +17,10 @@ def parse_country_from_location(location_str):
     country = parts[-1].strip().lower()
     return country
 
+
 def calculate_contributor_diversity_score_from_list(contributors):
     if not contributors:
+        print("No contributors provided")
         return 0
 
     now = datetime.utcnow()
@@ -45,9 +49,11 @@ def calculate_contributor_diversity_score_from_list(contributors):
     score = 0.4 * new_ratio + 0.6 * country_diversity_score
     return round(score * 10, 2)
 
+
 def calculate_pr_review_quality(owner, repo):
     prs = fetch_pull_requests(owner, repo)
     if not prs:
+        print(f"No PRs found for {owner}/{repo}")
         return 0
 
     total_review_comments = 0
@@ -63,18 +69,18 @@ def calculate_pr_review_quality(owner, repo):
             continue
 
         reviewed_pr_count += 1
-
         total_review_comments += len(reviews)
 
         first_review_time = min(
-            parser.parse(review["submitted_at"]) 
-            for review in reviews 
+            parser.parse(review["submitted_at"])
+            for review in reviews
             if review.get("submitted_at")
         )
         latency_seconds = (first_review_time - pr_created).total_seconds()
         total_review_latencies.append(latency_seconds)
 
     if reviewed_pr_count == 0:
+        print(f"No reviewed PRs found for {owner}/{repo}")
         return 0
 
     avg_comments = total_review_comments / reviewed_pr_count
@@ -92,6 +98,7 @@ def calculate_pr_review_quality(owner, repo):
 def calculate_issue_responsiveness(owner, repo):
     issues = fetch_issues(owner, repo)
     if not issues:
+        print(f"No issues found for {owner}/{repo}")
         return 0
 
     response_times = []
@@ -116,6 +123,7 @@ def calculate_issue_responsiveness(owner, repo):
         comments_counts.append(len(comments))
 
     if not response_times or not comments_counts:
+        print(f"No comments or response times found for {owner}/{repo}")
         return 0
 
     avg_response_time = sum(response_times) / len(response_times)
@@ -135,15 +143,20 @@ def calculate_issue_responsiveness(owner, repo):
     final_score = (response_time_score + comments_score) / 2
     return round(final_score, 2)
 
+
 def calculate_category_3_score(owner, repo, contributors=None):
     if contributors is None:
-        # Fetch contributors if not provided
         from services.ingest.repo_fetcher import fetch_contributors_with_locations
         contributors = fetch_contributors_with_locations(owner, repo)
-    
+
+    print(f"Contributor count for {owner}/{repo}: {len(contributors)}")
+    if contributors:
+        print(f"Sample contributor created_at for {owner}/{repo}: {contributors[0].get('created_at')}")
+
     contributor_score = calculate_contributor_diversity_score_from_list(contributors)
     pr_score = calculate_pr_review_quality(owner, repo)
     issue_score = calculate_issue_responsiveness(owner, repo)
 
     score = 0.5 * contributor_score + 0.25 * pr_score + 0.25 * issue_score
+    print(f"Community score for {owner}/{repo}: {score}")
     return round(score, 2)

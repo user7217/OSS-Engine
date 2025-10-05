@@ -7,28 +7,34 @@ from services.scoring.database import get_cached_score, save_score
 
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-
-if not GEMINI_API_KEY:
-    import os
-    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
     raise RuntimeError("GEMINI_API_KEY environment variable is not set")
 
+
 client = genai.Client(api_key=GEMINI_API_KEY)
+
 
 def parse_score_from_text(text):
     match = re.search(r"(\d+(\.\d+)?)", text)
     if match:
-        return float(match.group(1))
+        score = float(match.group(1))
+        print(f"Parsed score from text: {score}")
+        return score
+    print("No numeric score found in Gemini response")
     return None
 
-def send_prompt_to_gemini(prompt):
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt
-    )
-    return parse_score_from_text(response.text)
 
+def send_prompt_to_gemini(prompt):
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt
+        )
+        print("Received response from Gemini")
+        return parse_score_from_text(response.text)
+    except Exception as e:
+        print(f"Error querying Gemini: {e}")
+        return 0
 
 
 def get_documentation_score(owner, repo_name):
@@ -41,13 +47,14 @@ def get_documentation_score(owner, repo_name):
     Each scored separately by Gemini using focused prompts on filtered README snippets.
     """
 
-    # Check for cached score first
     cached = get_cached_score(owner, repo_name)
     if cached and "documentation_score" in cached:
+        print(f"Using cached documentation score for {owner}/{repo_name}: {cached['documentation_score']}")
         return cached["documentation_score"]
 
     readme_content = fetch_readme(owner, repo_name)
     if not readme_content:
+        print(f"No README content found for {owner}/{repo_name}")
         return 0
 
     lines = [line.strip() for line in readme_content.splitlines() if line.strip()]
@@ -77,19 +84,20 @@ def get_documentation_score(owner, repo_name):
     examples_score = send_prompt_to_gemini(prompt_template.format(criterion_description="examples and tutorials") + examples_snippet)
     setup_score = send_prompt_to_gemini(prompt_template.format(criterion_description="setup and installation instructions") + setup_snippet)
     license_contrib_score = send_prompt_to_gemini(prompt_template.format(criterion_description="license and contribution guidelines") + license_contrib_snippet)
-    print(clarity_score, examples_score, setup_score, license_contrib_score)
-    combined_score = (
-        0.4 * clarity_score +
-        0.3 * examples_score +
-        0.2 * setup_score +
-        0.1 * license_contrib_score
-    )
 
+    print(f"Documentation sub-scores for {owner}/{repo_name}: clarity={clarity_score}, examples={examples_score}, setup={setup_score}, license/contrib={license_contrib_score}")
+
+    combined_score = (
+        0.4 * (clarity_score or 0) +
+        0.3 * (examples_score or 0) +
+        0.2 * (setup_score or 0) +
+        0.1 * (license_contrib_score or 0)
+    )
     combined_score = round(combined_score, 2)
 
-    # Save documentation score to cache
     cached = cached or {}
     cached["documentation_score"] = combined_score
     save_score(owner, repo_name, cached)
+    print(f"Saved documentation score for {owner}/{repo_name}: {combined_score}")
 
     return combined_score
