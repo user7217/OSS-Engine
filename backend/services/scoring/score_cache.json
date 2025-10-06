@@ -94,22 +94,6 @@
   "daslearning-org/ai-surveillance": {
     "documentation_score": 4.8
   },
-  "tensorflow/tensorflow": {
-    "repo": "tensorflow/tensorflow",
-    "score_category_1": 7.99,
-    "code_quality_score": 9.5,
-    "community_engagement_score": 2.21,
-    "documentation_score": 3.0,
-    "combined_score": 6.42,
-    "top_highlights": [
-      "Code Quality"
-    ],
-    "special_mentions": [
-      "Weak in Community",
-      "Weak in Documentation"
-    ],
-    "num_snippets": 1
-  },
   "SwanHubX/SwanLab": {
     "documentation_score": 3.9
   },
@@ -133,5 +117,21 @@
   "mbarde/flask-qrcode": {
     "documentation_score": 7.6,
     "code_quality_score": 4.5
+  },
+  "tensorflow/tensorflow": {
+    "repo": "tensorflow/tensorflow",
+    "score_category_1": 8.0,
+    "code_quality_score": 9.5,
+    "community_engagement_score": 4.48,
+    "documentation_score": 6.4,
+    "combined_score": 7.34,
+    "top_highlights": [
+      "Maintenance",
+      "Code Quality"
+    ],
+    "special_mentions": [
+      "Weak in Community"
+    ],
+    "num_snippets": 1
   }
 }

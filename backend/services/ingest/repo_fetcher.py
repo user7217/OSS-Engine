@@ -146,31 +146,44 @@ def fetch_code_snippets(owner, repo_name, max_files=3, max_lines=50):
 
 def fetch_contributors_with_locations(owner, repo, top_n=10):
     """
-    Fetch top contributors for the repo and their GitHub profile locations.
+    Fetch total contributor count and detailed info for top N contributors.
     """
-    contributors_url = f"{GITHUB_API_URL}/repos/{owner}/{repo}/contributors?per_page={top_n}"
-    resp = requests.get(contributors_url, headers=HEADERS)
-    resp.raise_for_status()
-    contributors = resp.json()
+    contributors_url = f"{GITHUB_API_URL}/repos/{owner}/{repo}/contributors?per_page=100"
+    all_contributors = []
+    page = 1
+
+    # Paginate to get all contributors
+    while True:
+        resp = requests.get(f"{contributors_url}&page={page}", headers=HEADERS)
+        resp.raise_for_status()
+        batch = resp.json()
+        if not batch:
+            break
+        all_contributors.extend(batch)
+        page += 1
+
+    total_contributors = len(all_contributors)
+    top_contributors = all_contributors[:top_n]
 
     detailed_contributors = []
-    for contributor in contributors:
+    for contributor in top_contributors:
         username = contributor.get("login")
         user_url = f"{GITHUB_API_URL}/users/{username}"
         user_resp = requests.get(user_url, headers=HEADERS)
         user_resp.raise_for_status()
         user_data = user_resp.json()
-        location = user_data.get("location", None)
-        created_at = user_data.get("created_at", None)  # ISO date string
-
         detailed_contributors.append({
             "login": username,
             "contributions": contributor.get("contributions"),
-            "location": location,
-            "created_at": created_at
+            "location": user_data.get("location"),
+            "created_at": user_data.get("created_at")
         })
 
-    return detailed_contributors
+    return {
+        "total_contributors": total_contributors,
+        "top_contributors": detailed_contributors
+    }
+
 
 def fetch_readme(owner, repo_name, max_chars=10000, keywords=None):
     """
