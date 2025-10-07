@@ -213,5 +213,8 @@
       "Weak in Documentation"
     ],
     "num_snippets": 3
+  },
+  "tiangolo/uwsgi-nginx-flask-docker": {
+    "documentation_score": 7.2
   }
 }
