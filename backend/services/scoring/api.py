@@ -32,22 +32,22 @@ class RepoRequest(BaseModel):
 
 @app.post("/score")
 def score_repo(req: RepoRequest):
-    print(f"Received /score request for repo {req.owner}/{req.repo_name}")
+    print(f"Received /score request for repo {req.owner}/{req.repo_name}", flush=True)
     # First check cache
     cached = get_cached_score(req.owner, req.repo_name)
     if cached:
-        print(f"Cache hit for {req.owner}/{req.repo_name}, returning cached data.")
+        print(f"Cache hit for {req.owner}/{req.repo_name}, returning cached data.", flush=True)
         return cached
 
     # Perform full scoring if cache miss
     repo_data = fetch_repo_data(req.owner, req.repo_name)
     if not repo_data:
-        print(f"Repository {req.owner}/{req.repo_name} not found or access denied")
+        print(f"Repository {req.owner}/{req.repo_name} not found or access denied", flush=True)
         raise HTTPException(status_code=404, detail="Repository not found or access denied")
-    print(f"Fetched repo data keys: {list(repo_data.keys())}")
+    print(f"Fetched repo data keys: {list(repo_data.keys())}", flush=True)
 
     snippets = fetch_code_snippets(req.owner, req.repo_name)
-    print(f"Fetched {len(snippets)} snippets")
+    print(f"Fetched {len(snippets)} snippets", flush=True)
 
     maintenance_score = calculate_category_1_score(repo_data)
     code_quality_score = get_aggregated_code_quality_score(snippets)
@@ -61,7 +61,7 @@ def score_repo(req: RepoRequest):
         0.10 * documentation_score,
         2
     )
-    print(f"Computed combined score: {combined_score}")
+    print(f"Computed combined score: {combined_score}", flush=True)
 
     highlights = []
     special_mentions = []
@@ -92,7 +92,7 @@ def score_repo(req: RepoRequest):
     }
 
     save_score(req.owner, req.repo_name, result)
-    print(f"Saved scored data for {req.owner}/{req.repo_name} in cache")
+    print(f"Saved scored data for {req.owner}/{req.repo_name} in cache", flush=True)
     return result
 
 
@@ -107,7 +107,7 @@ class FilterCriteria(BaseModel):
 
 @app.post("/search_and_score")
 def search_and_score(filters: FilterCriteria):
-    print("Received /search_and_score request with filters:", filters.dict())
+    print("Received /search_and_score request with filters:", filters.dict(), flush=True)
     try:
         repos = search_repos(
             keywords=filters.keywords,
@@ -118,20 +118,20 @@ def search_and_score(filters: FilterCriteria):
             recent_commit_days=filters.recent_commit_days or 90,
             max_repos=150,
         )
-        print(f"Found {len(repos)} repos matching filters")
+        print(f"Found {len(repos)} repos matching filters", flush=True)
     except Exception as e:
-        print("Search repos error:", e)
+        print("Search repos error:", e, flush=True)
         raise HTTPException(status_code=500, detail=f"Error searching repositories: {e}")
 
     if not repos:
-        print("No repos found matching search criteria")
+        print("No repos found matching search criteria", flush=True)
         return []
 
     try:
         scored_repos = batch_score_repositories(repos)
-        print(f"Scored {len(scored_repos)} repositories successfully")
+        print(f"Scored {len(scored_repos)} repositories successfully", flush=True)
     except Exception as e:
-        print("Batch scoring error:", e)
+        print("Batch scoring error:", e, flush=True)
         raise HTTPException(status_code=500, detail=f"Error scoring repositories: {e}")
 
     return scored_repos

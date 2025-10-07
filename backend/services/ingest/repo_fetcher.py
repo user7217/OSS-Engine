@@ -37,15 +37,18 @@ query RepoSnapshot($owner: String!, $name: String!, $since: GitTimestamp!) {
 """
 
 def fetch_repo_data(owner, repo_name):
-    since_date = (datetime.utcnow() - timedelta(days=90)).isoformat() + "Z"
+    from datetime import timezone, datetime, timedelta
+    import requests
+
+    since_date = (datetime.now(timezone.utc) - timedelta(days=90)).isoformat().replace("+00:00", "Z")
     variables = {"owner": owner, "name": repo_name, "since": since_date}
     data = run_graphql_query(REPO_SNAPSHOT_QUERY, variables)
     repo = data.get("repository", None)
     if not repo:
-        print(f"Repository {owner}/{repo_name} not found in GraphQL response.")
+        print(f"Repository {owner}/{repo_name} not found in GraphQL response.", flush=True)
         return None
 
-    pushed_at = repo.get("pushedAt") or ""
+    pushed_at = repo.get("pushedAt")
 
     dbr = repo.get("defaultBranchRef") or {}
     tgt = dbr.get("target") or {}
@@ -59,11 +62,11 @@ def fetch_repo_data(owner, repo_name):
             rest = requests.get(f"{GITHUB_API_URL}/repos/{owner}/{repo_name}", headers=HEADERS, timeout=15)
             if rest.ok:
                 pushed_at = rest.json().get("pushed_at") or ""
-                print(f"[REST fallback] pushed_at for {owner}/{repo_name}: {pushed_at}")
+                print(f"[REST fallback] pushed_at for {owner}/{repo_name}: {pushed_at}", flush=True)
             else:
-                print(f"[REST fallback] Failed for {owner}/{repo_name} with status {rest.status_code}")
+                print(f"[REST fallback] Failed for {owner}/{repo_name} with status {rest.status_code}", flush=True)
         except Exception as e:
-            print(f"[REST fallback] Error fetching pushed_at for {owner}/{repo_name}: {e}")
+            print(f"[REST fallback] Error fetching pushed_at for {owner}/{repo_name}: {e}", flush=True)
 
     scored_repo = {
         "owner": owner,
@@ -74,8 +77,11 @@ def fetch_repo_data(owner, repo_name):
         "totalCommitCount": total_commit_count,
     }
 
-    print(f"fetch_repo_data for {owner}/{repo_name}: pushedAt={pushed_at}, last90={commit_count_last_90_days}, total={total_commit_count}")
+
+    print(scored_repo, flush=True)
+    print("-----", flush=True)
     return scored_repo
+
 
 
 

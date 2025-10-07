@@ -153,13 +153,6 @@ Contributions welcome!
 
 ---
 
-## 📸 Preview
-
-![FilterPanel](./assets/filter-panel.png)
-![RepoCard](./assets/repo-card.png)
-
----
-
 ## 📝 License
 
 MIT License © 2025 OSS Engine Contributors

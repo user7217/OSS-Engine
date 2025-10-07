@@ -12,36 +12,46 @@ def decay_score(value, max_value, min_score=0, max_score=10):
 
 
 def _normalize_maintenance_inputs(data):
-    pushed_at = data.get("pushedAt") or data.get("pushed_at") or ""
-    commit90 = data.get("commitCountLast90Days")
-    total_commits = data.get("totalCommitCount")
+    # Normalize pushed_at field (accept both naming styles)
+    pushed_at = data.get("pushed_at") or data.get("pushedAt") or ""
 
+    # Parse commit data safely
     try:
-        commit90 = int(commit90) if commit90 is not None else 0
+        commit90 = int(data.get("commitCountLast90Days", 0))
     except Exception:
         commit90 = 0
 
     try:
-        total_commits = int(total_commits) if total_commits is not None else 0
+        total_commits = int(data.get("totalCommitCount", 0))
     except Exception:
         total_commits = 0
 
+    # Ensure pullRequests and issues are dicts, not ints
+    pull_requests = data.get("pullRequests", {})
+    if isinstance(pull_requests, int):
+        pull_requests = {"totalCount": pull_requests}
+
+    issues = data.get("issues", {})
+    if isinstance(issues, int):
+        issues = {"totalCount": issues}
+
     normalized = {
-        "pushedAt": pushed_at,
+        "pushed_at": pushed_at,
         "commitCountLast90Days": commit90,
         "totalCommitCount": total_commits,
-        "pullRequests": data.get("pullRequests", {}),
-        "issues": data.get("issues", {}),
+        "pullRequests": pull_requests,
+        "issues": issues,
         "ciPresent": data.get("ciPresent", True),
         "testCoveragePercent": data.get("testCoveragePercent", 80),
     }
 
-    print(f"[normalize] pushedAt={normalized['pushedAt']}, last90={normalized['commitCountLast90Days']}, total={normalized['totalCommitCount']}")
+    print(f"[normalize] pushed_at={normalized['pushed_at']}, last90={commit90}, total={total_commits}")
     return normalized
 
 
 def calculate_commit_activity(pushed_at, commit_count_last_90_days, total_commit_count):
     print("Calculating commit activity...")
+
     if not pushed_at:
         print("  Error: 'pushed_at' timestamp is missing or empty.")
         return 0
@@ -59,6 +69,7 @@ def calculate_commit_activity(pushed_at, commit_count_last_90_days, total_commit
     hours_diff = (now - pushed_dt).total_seconds() / 3600
     print(f"  Hours difference between now and pushed_at: {hours_diff}")
 
+    # Convert commits safely
     try:
         commit_count_last_90_days = int(commit_count_last_90_days)
     except (TypeError, ValueError):
@@ -69,18 +80,10 @@ def calculate_commit_activity(pushed_at, commit_count_last_90_days, total_commit
     except (TypeError, ValueError):
         total_commit_count = 0
 
-    print(f"  commit_count_last_90_days: {commit_count_last_90_days}")
-    print(f"  total_commit_count: {total_commit_count}")
-
-    recency_val = max(0, 2160 - hours_diff)  # 90d * 24h
+    recency_val = max(0, 2160 - hours_diff)  # 90 days * 24 hours
     recency_score = decay_score(recency_val, 2160)
-    print(f"  Recency score: {recency_score}")
-
     freq_score = decay_score(min(commit_count_last_90_days, 100), 100)
-    print(f"  Frequency score: {freq_score}")
-
     volume_score = decay_score(min(total_commit_count, 2000), 2000)
-    print(f"  Volume score: {volume_score}")
 
     final_score = round(0.5 * recency_score + 0.3 * freq_score + 0.2 * volume_score, 2)
     print(f"  Final commit activity score: {final_score}")
@@ -92,12 +95,8 @@ def calculate_pr_merge_rate(total_prs, merged_prs, avg_merge_time_days=5):
         return 0
     base_rate = merged_prs / total_prs
     rate_score = decay_score(base_rate, 1.0)
-    if avg_merge_time_days > 7:
-        time_penalty = max(0, 1 - 0.1 * (avg_merge_time_days - 7))
-    else:
-        time_penalty = 1
-    final_score = rate_score * time_penalty * 10
-    return round(max(0, min(final_score, 10)), 2)
+    time_penalty = max(0, 1 - 0.1 * (avg_merge_time_days - 7)) if avg_merge_time_days > 7 else 1
+    return round(max(0, min(rate_score * time_penalty * 10, 10)), 2)
 
 
 def calculate_issue_resolution_rate(total_issues, closed_issues, avg_close_time_days=10):
@@ -105,12 +104,8 @@ def calculate_issue_resolution_rate(total_issues, closed_issues, avg_close_time_
         return 0
     base_rate = closed_issues / total_issues
     rate_score = decay_score(base_rate, 1.0)
-    if avg_close_time_days > 14:
-        time_penalty = max(0, 1 - 0.05 * (avg_close_time_days - 14))
-    else:
-        time_penalty = 1
-    final_score = rate_score * time_penalty * 10
-    return round(max(0, min(final_score, 10)), 2)
+    time_penalty = max(0, 1 - 0.05 * (avg_close_time_days - 14)) if avg_close_time_days > 14 else 1
+    return round(max(0, min(rate_score * time_penalty * 10, 10)), 2)
 
 
 def calculate_ci_presence(ci_found=True, coverage_percent=80):
@@ -120,36 +115,39 @@ def calculate_ci_presence(ci_found=True, coverage_percent=80):
         return 10
     elif coverage_percent >= 50:
         return 7
-    else:
-        return 5
+    return 5
 
 
 def calculate_category_1_score(data, owner=None, repo=None):
     norm = _normalize_maintenance_inputs(data)
-    print(f"calculate_category_1_score inputs: pushedAt={norm.get('pushedAt')}, commitCountLast90Days={norm.get('commitCountLast90Days')}, totalCommitCount={norm.get('totalCommitCount')}")
+    print(f"calculate_category_1_score inputs: pushed_at={norm.get('pushed_at')}, "
+          f"commitCountLast90Days={norm.get('commitCountLast90Days')}, "
+          f"totalCommitCount={norm.get('totalCommitCount')}")
 
+    # Check cache
     if owner and repo:
         cached = get_cached_score(owner, repo)
         if cached and "maintenance_score" in cached:
             print(f"Using cached maintenance score for {owner}/{repo}: {cached['maintenance_score']}")
             return cached["maintenance_score"]
 
+    # Compute subscores
     commit_activity = calculate_commit_activity(
-        norm.get("pushedAt"),
+        norm.get("pushed_at"),
         norm.get("commitCountLast90Days"),
         norm.get("totalCommitCount")
     )
 
     pr_merge_rate = calculate_pr_merge_rate(
-        norm.get("pullRequests", {}).get("totalCount", 0),
-        norm.get("pullRequests", {}).get("merged", 0),
-        norm.get("pullRequests", {}).get("avgMergeTimeDays", 5)
+        norm["pullRequests"].get("totalCount", 0),
+        norm["pullRequests"].get("merged", 0),
+        norm["pullRequests"].get("avgMergeTimeDays", 5)
     )
 
     issue_resolution_rate = calculate_issue_resolution_rate(
-        norm.get("issues", {}).get("totalCount", 0),
-        norm.get("issues", {}).get("closed", 0),
-        norm.get("issues", {}).get("avgCloseTimeDays", 10)
+        norm["issues"].get("totalCount", 0),
+        norm["issues"].get("closed", 0),
+        norm["issues"].get("avgCloseTimeDays", 10)
     )
 
     ci_presence = calculate_ci_presence(
@@ -157,8 +155,9 @@ def calculate_category_1_score(data, owner=None, repo=None):
         norm.get("testCoveragePercent", 80)
     )
 
-    print(f"Commit activity: {commit_activity}, PR merge rate: {pr_merge_rate}, Issue resolution rate: {issue_resolution_rate}, CI presence: {ci_presence}")
+    print(f"Scores → Commit: {commit_activity}, PRs: {pr_merge_rate}, Issues: {issue_resolution_rate}, CI: {ci_presence}")
 
+    # Weighted final score
     score = (
         0.75 * commit_activity +
         0.15 * pr_merge_rate +
@@ -167,6 +166,8 @@ def calculate_category_1_score(data, owner=None, repo=None):
     )
 
     final = round(score, 2)
+
+    # Save cache
     if owner and repo:
         cached = get_cached_score(owner, repo) or {}
         cached["maintenance_score"] = final

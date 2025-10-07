@@ -133,5 +133,85 @@
       "Weak in Community"
     ],
     "num_snippets": 1
+  },
+  "user7217/OSS-Engine": {
+    "repo": "user7217/OSS-Engine",
+    "score_category_1": 4.67,
+    "code_quality_score": 0,
+    "community_engagement_score": 0.08,
+    "documentation_score": 3.5,
+    "combined_score": 2.24,
+    "top_highlights": [],
+    "special_mentions": [
+      "Weak in Maintenance",
+      "Weak in Code Quality",
+      "Weak in Community",
+      "Weak in Documentation"
+    ],
+    "num_snippets": 0
+  },
+  "diyaschool/dal_assessments": {
+    "repo": "diyaschool/dal_assessments",
+    "score_category_1": 1.03,
+    "code_quality_score": 4.0,
+    "community_engagement_score": 1.41,
+    "documentation_score": 0.7,
+    "combined_score": 1.83,
+    "top_highlights": [],
+    "special_mentions": [
+      "Weak in Maintenance",
+      "Weak in Code Quality",
+      "Weak in Community",
+      "Weak in Documentation"
+    ],
+    "num_snippets": 3
+  },
+  "theOehrly/Fast-F1": {
+    "repo": "theOehrly/Fast-F1",
+    "score_category_1": 4.45,
+    "code_quality_score": 9.0,
+    "community_engagement_score": 4.77,
+    "documentation_score": 7.3,
+    "combined_score": 5.95,
+    "top_highlights": [
+      "Code Quality"
+    ],
+    "special_mentions": [
+      "Weak in Maintenance",
+      "Weak in Community"
+    ],
+    "num_snippets": 1
+  },
+  "measure-sh/measure": {
+    "documentation_score": 6.9,
+    "code_quality_score": 10.0
+  },
+  "nextcloud/android": {
+    "documentation_score": 4.1
+  },
+  "uber/RIBs": {
+    "documentation_score": 7.2
+  },
+  "TeamAmaze/AmazeFileManager": {
+    "documentation_score": 0.9
+  },
+  "AlmasB/FXGL": {
+    "documentation_score": 7.9
+  },
+  "hoangsonww/EstateWise-Chapel-Hill-Chatbot": {
+    "documentation_score": 6.3
+  },
+  "gradio-app/gradio": {
+    "repo": "gradio-app/gradio",
+    "score_category_1": 7.99,
+    "code_quality_score": 6.0,
+    "community_engagement_score": 5.85,
+    "documentation_score": 3.5,
+    "combined_score": 6.51,
+    "top_highlights": [],
+    "special_mentions": [
+      "Weak in Documentation"
+    ],
+    "num_snippets": 3
   }
 }
