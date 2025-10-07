@@ -41,8 +41,7 @@ def calculate_contributor_diversity_score_from_list(contributor_data):
 
     no_contributors_score = min(total_contributors / 50, 1.0)
 
-    from datetime import timezone
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     new_contributors_count = 0
     countries = set()
 

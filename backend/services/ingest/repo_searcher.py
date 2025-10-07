@@ -85,6 +85,33 @@ def process_repo(repo, min_good_first_issues, max_good_first_issues):
 
 
 # ---------- Main search function ----------
+def _fetch_and_process_page(
+    items,
+    seen,
+    min_good_first_issues,
+    max_good_first_issues,
+    repos,
+    max_repos,
+):
+    new_repos = []
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = [
+            executor.submit(process_repo, repo, min_good_first_issues, max_good_first_issues)
+            for repo in items
+            if repo["full_name"] not in seen
+        ]
+
+        for f in as_completed(futures):
+            result = f.result()
+            if result:
+                full_name = result["full_name"]
+                if full_name not in seen:
+                    new_repos.append(result)
+                    seen.add(full_name)
+                    if len(repos) + len(new_repos) >= max_repos:
+                        break
+    return new_repos
+
 def search_repos(
     keywords: Optional[str] = None,
     language: Optional[str] = None,
@@ -114,24 +141,10 @@ def search_repos(
         if not items:
             break
 
-        # Run concurrent repo detail fetching
-        with ThreadPoolExecutor(max_workers=10) as executor:
-            futures = [
-                executor.submit(process_repo, repo, min_good_first_issues, max_good_first_issues)
-                for repo in items
-                if repo["full_name"] not in seen
-            ]
-
-            for f in as_completed(futures):
-                result = f.result()
-                if result:
-                    full_name = result["full_name"]
-                    if full_name not in seen:
-                        repos.append(result)
-                        seen.add(full_name)
-                        if len(repos) >= max_repos:
-                            break
-
+        new_repos = _fetch_and_process_page(
+            items, seen, min_good_first_issues, max_good_first_issues, repos, max_repos
+        )
+        repos.extend(new_repos)
         if len(repos) >= max_repos:
             break
         page += 1
