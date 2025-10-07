@@ -56,7 +56,7 @@ def get_aggregated_code_quality_score(snippets, owner=None, repo_name=None):
             model="gemini-2.5-flash",
             contents=input_text
         )
-        print(f"Received response from Gemini model")
+        print("Received response from Gemini model")
     except Exception as e:
         print(f"Error querying Gemini model: {e}")
         return 0
