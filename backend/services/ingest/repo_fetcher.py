@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 import base64
 import re
 from services.ingest.github_graphql_client import run_graphql_query
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 if not GITHUB_TOKEN:
@@ -148,6 +150,7 @@ def fetch_code_snippets(owner, repo_name, max_files=3, max_lines=50):
             continue
 
     print(f"Collected {len(snippets)} main file snippets for analysis")
+    print(snippets)
     return snippets
 
 def fetch_contributors_with_locations(owner, repo, top_n=10):
@@ -311,26 +314,35 @@ def fetch_issues(owner, repo, state="all", per_page=100, max_items=100):
         if len(data) < params["per_page"]:
             break
         page += 1
+    print(f"Fetched {len(issues)} issues for {owner}/{repo}", flush=True)
 
     return issues[:max_items]
 
 
 def fetch_issue_comments(owner, repo, issue_number, per_page=100, max_items=100):
     comments = []
-    page = 1
-    while len(comments) < max_items:
-        url = f"{GITHUB_API_URL}/repos/{owner}/{repo}/issues/{issue_number}/comments"
-        params = {"per_page": min(per_page, max_items - len(comments)), "page": page}
-        resp = requests.get(url, headers=HEADERS, params=params)
-        if resp.status_code != 200:
-            print(f"Failed to fetch issue comments: {resp.status_code} - {resp.text}")
-            break
-        data = resp.json()
-        if not data:
-            break
-        comments.extend(data)
-        if len(data) < params["per_page"]:
-            break
-        page += 1
+    max_per_page = 100
+    total_pages = (max_items + max_per_page -1) // max_per_page
 
+    def fetch_page(page):
+        url = f"{GITHUB_API_URL}/repos/{owner}/{repo}/issues/{issue_number}/comments"
+        params = {"per_page": per_page, "page": page}
+        resp = requests.get(url, headers=HEADERS, params=params)
+        if resp.status_code == 200:
+            return resp.json()
+        else:
+            print(f"Failed to fetch page {page}: {resp.status_code} - {resp.text}", flush=True)
+            return []
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = [executor.submit(fetch_page, page) for page in range(1, total_pages+1)]
+        for future in as_completed(futures):
+            data = future.result()
+            if data:
+                comments.extend(data)
+            if len(comments) >= max_items:
+                break
+
+    comments = comments[:max_items]
+    print(f"Fetched {len(comments)} comments for issue #{issue_number} in {owner}/{repo}", flush=True)
     return comments[:max_items]
