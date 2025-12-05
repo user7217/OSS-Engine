@@ -1,34 +1,4 @@
 {
-  "lutzroeder/netron": {
-    "repo": "lutzroeder/netron",
-    "score_category_1": 6.49,
-    "code_quality_score": 8.0,
-    "community_engagement_score": 1.77,
-    "documentation_score": 6.3,
-    "combined_score": 5.67,
-    "top_highlights": [
-      "Code Quality"
-    ],
-    "special_mentions": [
-      "Weak in Community"
-    ],
-    "num_snippets": 3
-  },
-  "facebook/react": {
-    "repo": "facebook/react",
-    "score_category_1": 6.46,
-    "code_quality_score": 9.5,
-    "community_engagement_score": 4.53,
-    "documentation_score": 6.6,
-    "combined_score": 6.75,
-    "top_highlights": [
-      "Code Quality"
-    ],
-    "special_mentions": [
-      "Weak in Community"
-    ],
-    "num_snippets": 3
-  },
   "techy4shri/Traffic-Tracking-System": {
     "documentation_score": 7.3
   },
@@ -218,16 +188,17 @@
   },
   "user7217/OxygenTracker": {
     "repo": "user7217/OxygenTracker",
-    "score_category_1": 5.23,
-    "code_quality_score": 4.0,
+    "score_category_1": 5.19,
+    "code_quality_score": 4.8,
     "community_engagement_score": 0.08,
-    "documentation_score": 5.3,
-    "combined_score": 3.64,
+    "documentation_score": 1.6,
+    "combined_score": 3.46,
     "top_highlights": [],
     "special_mentions": [
       "Weak in Code Quality",
-      "Weak in Community"
+      "Weak in Community",
+      "Weak in Documentation"
     ],
-    "num_snippets": 3
+    "num_snippets": 5
   }
 }

@@ -46,11 +46,13 @@ def score_repo(req: RepoRequest):
         raise HTTPException(status_code=404, detail="Repository not found or access denied")
     print(f"Fetched repo data keys: {list(repo_data.keys())}", flush=True)
 
-    snippets = fetch_code_snippets(req.owner, req.repo_name)
+    snippets, structure_summary = fetch_code_snippets(req.owner, req.repo_name)
     print(f"Fetched {len(snippets)} snippets", flush=True)
-
+    
     maintenance_score = calculate_category_1_score(repo_data)
-    code_quality_score = get_aggregated_code_quality_score(snippets)
+    
+    code_quality_score = get_aggregated_code_quality_score(snippets, structure_summary)
+
     community_score = calculate_category_3_score(req.owner, req.repo_name)
     documentation_score = get_documentation_score(req.owner, req.repo_name)
 

@@ -1,72 +1,96 @@
 import os
-from google import genai
+import json
 import re
+from google import genai
 from services.scoring.database import get_cached_score, save_score
-
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
     raise RuntimeError("GEMINI_API_KEY environment variable is not set")
 
-
 client = genai.Client(api_key=GEMINI_API_KEY)
 
 
 def parse_score_from_text(text):
-    match = re.search(r"(\d+(\.\d+)?)", text)
-    if match:
-        score = float(match.group(1))
-        print(f"Parsed score from text: {score}")
-        return score
-    print("No score found in text response")
-    return None
+    """Extract a numeric score from text."""
+    numbers = re.findall(r"\b\d+(?:\.\d+)?\b", text)
+    return float(numbers[-1]) if numbers else None
 
 
-def get_aggregated_code_quality_score(snippets, owner=None, repo_name=None):
+def get_aggregated_code_quality_score(snippets, structure_summary=None, owner=None, repo_name=None):
     """
-    Calculates aggregated code quality score using Gemini AI on code snippets.
-    If owner and repo_name provided, caches results by repo key.
+    Analyze code and folder structure using Gemini.
+    Returns weighted score: 0.8*code + 0.2*structure.
     """
+
+    # --- Safety check ---
+    if not snippets or not isinstance(snippets, list) or not all(isinstance(s, dict) for s in snippets):
+        print("Invalid snippets format:", snippets)
+        return 0
+
+    # --- Cache check ---
     if owner and repo_name:
         cached = get_cached_score(owner, repo_name)
         if cached and "code_quality_score" in cached:
-            print(f"Using cached code quality score for {owner}/{repo_name}: {cached['code_quality_score']}")
             return cached["code_quality_score"]
     else:
         cached = {}
 
-    if not snippets:
-        print("No code snippets provided, returning 0 score")
-        return 0
+    # --- Combine code snippets ---
+    combined_content = "\n\n".join([
+        f"// File: {s['file_path']}\n{s['content']}"
+        for s in snippets
+    ])
+    if len(combined_content) > 15000:
+        combined_content = combined_content[:15000]
 
-    combined_content = "\n\n".join([f"// File: {s['file_path']}\n{s['content']}" for s in snippets])
-    print(f"Combined content length for code quality scoring: {len(combined_content)} characters")
+    # --- Build Gemini prompt ---
+    prompt = f"""
+You are a senior software quality auditor.
 
-    standard_prompt = (
-        "You are a software quality expert. Assess the overall code quality "
-        "based on the following combined code snippets from the main files of a repository. "
-        "Evaluate readability, structure, correctness, maintainability, and best practices.\n"
-        "Provide a normalized score from 0 (poor) to 10 (excellent). Reply with only the numeric score."
-    )
+1. Rate **code quality** (clarity, maintainability, efficiency) out of 10.
+2. Rate **folder structure** (organization, logical grouping, separation of concerns) out of 10.
+3. Provide short reasoning for both.
+4. Compute **final score** = 0.8*code + 0.2*folder structure.
+5. Respond strictly in JSON:
+{{
+  "code_quality": <number>,
+  "folder_structure": <number>,
+  "final_score": <number>,
+  "reasoning": "<short explanation>"
+}}
 
-    input_text = f"{standard_prompt}\n\n{combined_content}"
+Folder structure summary:
+{structure_summary or "(No structure provided)"}
 
+Code snippets:
+{combined_content}
+"""
+
+    # --- Query Gemini ---
+    final_score = 0
     try:
         response = client.models.generate_content(
             model="gemini-2.5-flash",
-            contents=input_text
+            contents=prompt
         )
-        print("Received response from Gemini model")
+        if hasattr(response, "text") and response.text:
+            try:
+                result = json.loads(response.text)
+                final_score = float(result.get("final_score", 0))
+                print("Gemini JSON:", result)
+            except json.JSONDecodeError:
+                print("Gemini response not JSON. Raw text:", response.text)
+                final_score = parse_score_from_text(response.text) or 0
+        else:
+            print("Gemini returned empty response")
     except Exception as e:
         print(f"Error querying Gemini model: {e}")
-        return 0
+        final_score = 0
 
-    score = parse_score_from_text(response.text)
-    score = score if score is not None else 0
-
+    # --- Cache ---
     if owner and repo_name:
-        cached["code_quality_score"] = score
+        cached["code_quality_score"] = final_score
         save_score(owner, repo_name, cached)
-        print(f"Saved code quality score for {owner}/{repo_name}: {score}")
 
-    return score
+    return final_score
